@@ -4,11 +4,12 @@ const jwt = require("jsonwebtoken");
 
 const userRegisterValidation = require("../helpers/userSchemaValidation")
   .userRegisterValidation;
-
+  
 const secret = process.env.SECRET || "sdjjio";
 
 //Register API  ==>> "/user/register"
-function register(req, res, db) {
+function register(req, res, db,headers) {
+
   if (req.method === "POST") {
     //decoding for the data sent in request body
     let decorder = new StringDecoder("utf-8");
@@ -38,24 +39,24 @@ function register(req, res, db) {
 
           await db.collection("users").insertOne(newUser);
           console.log("1 document inserted");
-          res.writeHead(200, "ok", { "content-type": "application/json" });
+          res.writeHead(200, "ok",headers);
           res.end(buffer);
         } catch (err) {
           throw new Error(err);
         }
       } else {
-        res.writeHead(404, { "content-type": "application/json" });
+        res.writeHead(404, headers);
         res.end(`{"error" : ${validationMsg}}`);
       }
     });
   } else {
-    res.writeHead(404);
+    res.writeHead(404,headers);
     res.end("Request Method is not valid");
   }
 }
 
 //Login API ==>> "/user/login"
-function login(req, res, db) {
+function login(req, res, db,headers) {
     console.log("Enter Login Function")
     if (req.method === "POST") {
       //decoding for the data sent in request body
@@ -84,7 +85,7 @@ function login(req, res, db) {
   
             if (user.password !== password) {
               validationMsg = "password is wrong";
-              res.writeHead(404, { "content-type": "application/json" });
+              res.writeHead(404, headers);
               res.end(`{"error" : ${validationMsg}}`);
             }
   
@@ -95,20 +96,13 @@ function login(req, res, db) {
               process.env.SECRETKEY || "sjndsj",
               { expiresIn: 60 * 60 }
             );
-            res.setHeader("token",token)
-            res.setHeader("Access-Control-Allow-Origin", "*")
-            res.setHeader("Access-Control-Allow-Methods",
-            "DELETE, POST, GET, OPTIONS")
-            // res.setHeader("Access-Control-Allow-Headers",
-            // "Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With")
-            res.setHeader("Access-Control-Max-Age", "86400")
-            res.writeHead(200, "ok")
+            res.writeHead(200, "ok",{...headers, "token":token})
             console.log("Finishing")
-            res.end(token);
+            res.end(`{"token":${token}}`);
             console.log("end request")
           } else {
             validationMsg = "email doesn't exist";
-            res.writeHead(404, { "content-type": "application/json" });
+            res.writeHead(404, headers);
             res.end(`{"error" : ${validationMsg}}`);
           }
         } catch (err) {
@@ -116,7 +110,7 @@ function login(req, res, db) {
         }
       });
     } else {
-      res.writeHead(404);
+      res.writeHead(404,headers);
       res.end("Resource not found");
     }
   }

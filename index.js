@@ -20,10 +20,26 @@ MongoClient.connect(
       process.exit();
     }
     const dbo = db.db("GuestBookDB");
-    const server = http.createServer((req, res) => {
-        onRequest(req, res, dbo);
-      });
 
+    const server = http.createServer((req, res) => {
+      const headers = {
+        "Access-Control-Allow-Headers": "Content-Type",
+        "Access-Control-Allow-Credentials": "true",
+        "Access-Control-Allow-Methods":
+          "GET, HEAD, POST, PUT, PATCH, DELETE, OPTIONS",
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Expose-Headers": "*",
+        "Access-Control-Max-Age": 2592000, // 30 days
+        "content-type": "application/json",
+        Connection: "keep-alive",
+      };
+      if (req.method === "OPTIONS") {
+        res.writeHead(204, headers);
+        res.end();
+        return;
+      }
+      onRequest(req, res, dbo, headers);
+    });
     server.listen(port, () => {
       console.log(`Server running at port ${port}`);
     });

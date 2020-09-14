@@ -4,13 +4,13 @@ const ObjectID = require("mongodb").ObjectID;
 const isAuthenticated = require("../helpers/authentication").isAuthenticated;
 
 //Getting All Messages ==>> "/messages"
-function getMsg(req, res, db) {
+function getMsg(req, res, db, headers) {
   if (req.method === "GET") {
     //check authentication
     const token = req.headers["token"];
     const _id = isAuthenticated(token);
     if (!_id) {
-      res.writeHead(404);
+      res.writeHead(404, headers);
       res.end("user is not authenticated");
     } else {
       db.collection("messages")
@@ -18,25 +18,25 @@ function getMsg(req, res, db) {
         .toArray(function (err, result) {
           if (err) throw err;
           const messages = JSON.stringify(result);
-          res.writeHead(200, "ok", { "content-type": "application/json" });
+          res.writeHead(200, "ok", headers);
           console.log(messages);
           res.end(messages);
         });
     }
   } else {
-    res.writeHead(404);
+    res.writeHead(404, headers);
     res.end("Request Method is not valid");
   }
 }
 
 //Posting Message API  ==>> "/message/add"
-function postMsg(req, res, db) {
+function postMsg(req, res, db, headers) {
   if (req.method === "POST") {
     //check authentication
     const token = req.headers["token"];
     const _id = isAuthenticated(token);
     if (!_id) {
-      res.writeHead(404);
+      res.writeHead(404, headers);
       res.end("user is not authenticated");
     } else {
       let decorder = new StringDecoder("utf-8");
@@ -50,14 +50,14 @@ function postMsg(req, res, db) {
         buffer += decorder.end();
         const newMsg = JSON.parse(buffer);
         if (!newMsg.body) {
-          res.writeHead(404);
+          res.writeHead(404, headers);
           res.end("Message body is required");
         } else {
           newMsg.userId = _id;
           try {
             await db.collection("messages").insertOne(newMsg);
             console.log("1 document inserted");
-            res.writeHead(200, "ok", { "content-type": "application/json" });
+            res.writeHead(200, "ok", headers);
             console.log(buffer);
             res.end(buffer);
           } catch (err) {
@@ -67,13 +67,13 @@ function postMsg(req, res, db) {
       });
     }
   } else {
-    res.writeHead(404);
+    res.writeHead(404, headers);
     res.end("Request Method is not valid");
   }
 }
 
-//Editing Message API ==>> "/message/edit/:id"
-function editMsg(req, res, db) {
+//Editing Message API ==>> "/message/edit/?id="
+function editMsg(req, res, db, headers) {
   if (req.method === "POST" || req.method === "PATCH") {
     //TODO change it in production and deployment
 
@@ -84,7 +84,7 @@ function editMsg(req, res, db) {
     const userId = isAuthenticated(token);
 
     if (!userId) {
-      res.writeHead(404);
+      res.writeHead(404, headers);
       res.end("user is not authenticated");
     } else {
       let decorder = new StringDecoder("utf-8");
@@ -104,11 +104,11 @@ function editMsg(req, res, db) {
 
         if (msg) {
           if (msg.userId !== userId) {
-            res.writeHead(404);
+            res.writeHead(404, headers);
             res.end("User is not authenticated");
           } else {
             if (!msgUpdated.body) {
-              res.writeHead(404);
+              res.writeHead(404, headers);
               res.end("Message body is required");
             } else {
               try {
@@ -120,9 +120,7 @@ function editMsg(req, res, db) {
                   );
 
                 console.log("1 document updated");
-                res.writeHead(200, "ok", {
-                  "content-type": "application/json",
-                });
+                res.writeHead(200, "ok", headers);
                 res.end(buffer);
               } catch (err) {
                 throw new Error(err);
@@ -130,19 +128,19 @@ function editMsg(req, res, db) {
             }
           }
         } else {
-          res.writeHead(404);
+          res.writeHead(404, headers);
           res.end("Message Not Found");
         }
       });
     }
   } else {
-    res.writeHead(404);
+    res.writeHead(404, headers);
     res.end("Request Method is not valid");
   }
 }
 
-//Deleting Message API == >> "/message/delete/:id"
-async function deleteMsg(req, res, db) {
+//Deleting Message API == >> "/message/delete/?id="
+async function deleteMsg(req, res, db, headers) {
   if (req.method === "DELETE") {
     //TODO change it in production and deployment
 
@@ -150,7 +148,7 @@ async function deleteMsg(req, res, db) {
     const msgId = myURL.searchParams.get("id");
 
     if (msgId === null || msgId.length !== 24) {
-      res.writeHead(404);
+      res.writeHead(404, headers);
       res.end("Message Not Found");
     } else {
       //check authentication
@@ -158,7 +156,7 @@ async function deleteMsg(req, res, db) {
       const userId = isAuthenticated(token);
 
       if (!userId) {
-        res.writeHead(404);
+        res.writeHead(404, headers);
         res.end("user is not authenticated");
       } else {
         const msg = await db
@@ -166,7 +164,7 @@ async function deleteMsg(req, res, db) {
           .findOne({ _id: new ObjectID(msgId) });
         if (msg) {
           if (msg.userId !== userId) {
-            res.writeHead(404);
+            res.writeHead(404, headers);
             res.end("User is not authenticated");
           } else {
             try {
@@ -175,27 +173,25 @@ async function deleteMsg(req, res, db) {
                 .findOneAndDelete({ _id: new ObjectID(msgId) });
 
               console.log("1 document Deleted");
-              res.writeHead(200, "ok", {
-                "content-type": "application/json",
-              });
+              res.writeHead(200, "ok", headers);
               res.end("Message Deleted Successfully");
             } catch (err) {
               throw new Error(err);
             }
           }
         } else {
-          res.writeHead(404);
+          res.writeHead(404, headers);
           res.end("Message Not Found");
         }
       }
     }
   } else {
-    res.writeHead(404);
+    res.writeHead(404, headers);
     res.end("Request Method is not valid");
   }
 }
 
-//Replying on Message API == >> "/message/reply/:id"
+//Replying on Message API == >> "/message/reply/?id="
 async function msgReply(req, res, db) {
   if (req.method === "POST" || req.method === "PATCH") {
     //TODO change it in production and deployment
@@ -210,7 +206,7 @@ async function msgReply(req, res, db) {
       .findOne({ _id: new ObjectID(userId) });
 
     if (!user) {
-      res.writeHead(404);
+      res.writeHead(404, headers);
       res.end("user is not authenticated");
     } else {
       let decorder = new StringDecoder("utf-8");
@@ -230,7 +226,7 @@ async function msgReply(req, res, db) {
 
         if (msg) {
           if (!msgUpdated.reply.body) {
-            res.writeHead(404);
+            res.writeHead(404, headers);
             res.end("Reply body is required");
           } else {
             try {
@@ -247,16 +243,14 @@ async function msgReply(req, res, db) {
               );
 
               console.log("1 reply is added");
-              res.writeHead(200, "ok", {
-                "content-type": "application/json",
-              });
+              res.writeHead(200, "ok", headers);
               res.end(buffer);
             } catch (err) {
               throw new Error(err);
             }
           }
         } else {
-          res.writeHead(404);
+          res.writeHead(404, headers);
           res.end("Message Not Found");
         }
       });
