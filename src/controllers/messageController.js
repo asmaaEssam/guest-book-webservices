@@ -3,6 +3,32 @@ const ObjectID = require("mongodb").ObjectID;
 
 const isAuthenticated = require("../helpers/authentication").isAuthenticated;
 
+//Getting All Messages ==>> "/messages"
+function getMsg(req, res, db) {
+  if (req.method === "GET") {
+    //check authentication
+    const token = req.headers["token"];
+    const _id = isAuthenticated(token);
+    if (!_id) {
+      res.writeHead(404);
+      res.end("user is not authenticated");
+    } else {
+      db.collection("messages")
+        .find()
+        .toArray(function (err, result) {
+          if (err) throw err;
+          const messages = JSON.stringify(result);
+          res.writeHead(200, "ok", { "content-type": "application/json" });
+          console.log(messages);
+          res.end(messages);
+        });
+    }
+  } else {
+    res.writeHead(404);
+    res.end("Request Method is not valid");
+  }
+}
+
 //Posting Message API  ==>> "/message/add"
 function postMsg(req, res, db) {
   if (req.method === "POST") {
@@ -242,8 +268,9 @@ async function msgReply(req, res, db) {
 }
 
 module.exports = {
+  getMsg,
   postMsg,
   editMsg,
   deleteMsg,
-  msgReply
+  msgReply,
 };
