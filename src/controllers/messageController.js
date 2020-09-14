@@ -1,4 +1,5 @@
 const { StringDecoder } = require("string_decoder");
+const ObjectID = require("mongodb").ObjectID;
 
 const isAuthenticated = require("../helpers/authentication").isAuthenticated;
 
@@ -115,7 +116,64 @@ function editMsg(req, res, db) {
     }
   }
 
+
+  //Deleting Message API == >> "/message/delete/:id"
+async function deleteMsg(req, res, db) {
+    if (req.method === "DELETE") {
+      //TODO change it in production and deployment
+  
+      const myURL = new URL("http://localhost:9000" + req.url);
+      const msgId = myURL.searchParams.get("id");
+  
+      if (msgId === null || msgId.length !== 24) {
+        res.writeHead(404);
+        res.end("Message Not Found");
+      } else {
+        //check authentication
+        const token = req.headers["token"];
+        const userId = isAuthenticated(token);
+  
+        if (!userId) {
+          res.writeHead(404);
+          res.end("user is not authenticated");
+        } else {
+          const msg = await db
+            .collection("messages")
+            .findOne({ _id: new ObjectID(msgId) });
+          if (msg) {
+            if (msg.userId !== userId) {
+              res.writeHead(404);
+              res.end("User is not authenticated");
+            } else {
+              try {
+                await db
+                  .collection("messages")
+                  .findOneAndDelete({ _id: new ObjectID(msgId) });
+  
+                console.log("1 document Deleted");
+                res.writeHead(200, "ok", {
+                  "content-type": "application/json",
+                });
+                res.end("Message Deleted Successfully");
+              } catch (err) {
+                throw new Error(err);
+              }
+            }
+          } else {
+            res.writeHead(404);
+            res.end("Message Not Found");
+          }
+        }
+      }
+    } else {
+      res.writeHead(404);
+      res.end("Request Method is not valid");
+    }
+  }
+
   module.exports = {
     postMsg,
     editMsg,
+    deleteMsg,
+
   };
