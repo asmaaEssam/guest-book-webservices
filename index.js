@@ -1,6 +1,7 @@
 const MongoClient = require("mongodb").MongoClient;
 const http = require("http");
 
+const onRequest = require("./server").onRequest;
 
 //URL of Atlas cloud database
 const url =
@@ -20,9 +21,8 @@ MongoClient.connect(
     }
     const dbo = db.db("GuestBookDB");
     const server = http.createServer((req, res) => {
-        console.log(dbo);
+        onRequest(req, res, dbo);
       });
-    
 
     server.listen(port, () => {
       console.log(`Server running at port ${port}`);
